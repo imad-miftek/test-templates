@@ -1,19 +1,19 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPen
 from plotpy.plot import BasePlot
-from plotpy.styles import HistogramParam, CurveParam
-from plotpy.items import HistogramItem, ImageItem
+from plotpy.items import HistogramItem
+from plotpy.styles import HistogramParam
 import numpy as np
 from plotpy.config import _
-
+from plotpy.builder import make
+from log10 import Log10ScaleEngine
+from qwt import QwtLogScaleEngine
+import torch
 
 class HistogramPlot(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Multiple Histograms")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 800, 800)
 
         # Create main widget and layout
         main_widget = QWidget()
@@ -22,47 +22,29 @@ class HistogramPlot(QMainWindow):
 
         # Create plot widget
         self.plot = BasePlot()
+        self.plot.setAxisScaleEngine(BasePlot.X_BOTTOM, Log10ScaleEngine())
+
+        self.hist_param = HistogramParam()
+        self.hist = HistogramItem()
         
-        # Create different distributions
-        distributions = {
-            "Normal": np.random.normal(0, 1, 1000),
-            "Uniform": np.random.uniform(-3, 3, 1000),
-            "Exponential": np.random.exponential(1, 1000),
-            "Gamma": np.random.gamma(2, 2, 1000),
-            "Laplace": np.random.laplace(0, 1, 1000)
-        }
+        self.hist.set_bin_range((1, 10**8))
+        self.hist.set_bins(512)
+        data : torch.Tensor = torch.load('daq_data.pt')
+        data = data.numpy()
 
-        # Colors for different histograms with alpha (transparency)
-        colors = {
-            'blue': (0, 0, 255, 50),      # RGB + alpha
-            'red': (255, 0, 0, 50),
-            'green': (0, 255, 0, 50),
-            'purple': (128, 0, 128, 50),
-            'orange': (255, 165, 0, 50)
-        }
-
-        # Create and add histogram items
-        for (name, data), (color_name, rgba) in zip(distributions.items(), colors.items()):
-            # Create curve parameters
-            curve_param = CurveParam(_(f"{name} Distribution"))
-            curve_param.curvestyle = "Steps"
-            curve_param.line.color = color_name
-            
-            curve_param.shade = 0.25  # Fill transparency
-            
-            # Create histogram parameters
-            hist_param = HistogramParam(_(f"{name} Histogram"))
-            
-            # Create histogram item
-            hist_item = HistogramItem(curveparam=curve_param, histparam=hist_param)
-            
-            # Set histogram properties
-            hist_item.set_hist_data(data)
-            hist_item.set_bins(50)
-            hist_item.set_logscale(False)
-            
-            # Add histogram to plot
-            self.plot.add_item(hist_item)
+        data_shifted = data - (-32768)
+        
+        # Add small epsilon to avoid log(0)
+        epsilon = 1e-10
+        
+        # Log scale transformation
+        # Maps 0->0, 65535->10^8
+        data_log = np.log10(data_shifted + epsilon) / np.log10(65535)  # Normalize to 0-1
+        data_scaled = data_log * 10**8  # Scale to target range
+        
+        # The Log10Transform will handle the scaling automatically
+        self.hist.set_hist_data(data_scaled)
+        self.plot.add_item(self.hist)
 
         # Add plot to layout
         layout.addWidget(self.plot)
