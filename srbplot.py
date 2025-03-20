@@ -1,9 +1,10 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel
-from PySide6.QtCore import Qt, QRunnable, QObject, Signal
-from PySide6.QtGui import QGuiApplication, QTransform
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtGui import QTransform
 
 import pyqtgraph as pg
 import numpy as np
+
+from colormaps import COLORMAPS
 
 LOG_MIN = 0
 LOG_MAX = 8
@@ -17,8 +18,10 @@ def setup_plot(plot: pg.PlotWidget):
     plot.getPlotItem().showGrid(x=True, y=False)  # Show grid for better visibility
 
 def setup_image(image: pg.ImageItem):
-    image.setColorMap(pg.colormap.get(name='viridis', source='matplotlib'))
-    image.setLevels(levels=(0, 10))  # Set levels for better visibility
+    color_map = pg.ColorMap(color=COLORMAPS['turbo']['colors'], pos=COLORMAPS['turbo']['positions'])
+    image.setColorMap(color_map)
+    image.setLevels((0, len(COLORMAPS['turbo']['colors'])))
+    image.setLookupTable(color_map.getLookupTable(alpha=True))
 
 def generate_data():
     data = np.zeros((10, 1024))  # Initialize data array for 10 ribbons
