@@ -13,7 +13,7 @@ def setup_plot(plot: pg.PlotWidget):
     plot.getPlotItem().setLogMode(x=False, y=True)  # Enable log mode for the y-axis
     plot.setMouseEnabled(x=False, y=False)  # Disable mouse interaction for x-axis
     plot.setBackground("w")
-    plot.setXRange(0, 10)
+    plot.setXRange(0, 52)
     plot.setYRange(LOG_MIN, LOG_MAX)  # Set y-range for log scale
     plot.getPlotItem().showGrid(x=True, y=False)  # Show grid for better visibility
 
@@ -24,12 +24,12 @@ def setup_image(image: pg.ImageItem):
     image.setLookupTable(color_map.getLookupTable(alpha=True))
 
 def generate_data():
-    data = np.zeros((10, 1024))  # Initialize data array for 10 ribbons
+    data = np.zeros((51, 1024))  # Initialize data array for 10 ribbons
 
     # Create pattern across ribbons
-    for i in range(10):
+    for i in range(51):
         # Vary number of active bins in a pattern
-        num_bins = int(20 + 15 * np.sin(i * np.pi / 4))
+        num_bins = 1024
 
         # Create positions with increasing spread for higher ribbon numbers
         positions = np.linspace(100, 900, num_bins) 
