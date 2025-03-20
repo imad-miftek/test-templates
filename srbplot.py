@@ -14,6 +14,7 @@ def setup_plot(plot: pg.PlotWidget):
     plot.setBackground("w")
     plot.setXRange(0, 10)
     plot.setYRange(LOG_MIN, LOG_MAX)  # Set y-range for log scale
+    plot.getPlotItem().showGrid(x=True, y=False)  # Show grid for better visibility
 
 def setup_image(image: pg.ImageItem):
     image.setColorMap(pg.colormap.get(name='viridis', source='matplotlib'))
@@ -44,14 +45,16 @@ def generate_data():
     data[7, 700:800] = 8 * np.sin(np.linspace(0, 4*np.pi, 100))  # Sine wave in ribbon 8
     data[4, 400:600:5] = 7  # Dotted line in ribbon 5
 
-    return np.zeros((10, 1024))
+    return data
 
 
 def transform_image(image: pg.ImageItem):
     # Create a transformation for the ImageItem
     transform = QTransform()
     transform.scale(1, (LOG_MAX - LOG_MIN) / 1024)  # Scale vertical axis
-    return transform
+    transform.translate(0, LOG_MIN/((LOG_MAX-LOG_MIN)/1024))
+    image.setTransform(transform)  # Apply transformation to the image
+    return image
 
 if __name__ == "__main__":
     app = QApplication([])
@@ -64,11 +67,16 @@ if __name__ == "__main__":
 
     plot = pg.PlotWidget()
     setup_plot(plot)
-    # image = pg.ImageItem()
+    image = pg.ImageItem()
+    setup_image(image)
+
+    data = generate_data()
+    image.setImage(data)  # Set initial image data
+    image = transform_image(image)  # Apply transformation to the image
 
     layout.addWidget(plot)
 
-    # plot.addItem(image)
+    plot.addItem(image)
 
     widget = QWidget()
     widget.setLayout(layout)
