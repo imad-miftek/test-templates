@@ -41,7 +41,7 @@ def generate_data():
 
         # Set values
         for pos, amp in zip(positions, amplitudes):
-            data[i, pos] = amp
+            data[i, pos] = amp * 50
 
     # Add some interesting features
     data[2, 300:350] = np.linspace(0, 9, 50)  # Ramp in ribbon 3
