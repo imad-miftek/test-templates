@@ -31,15 +31,17 @@ class RubberBandROICreator(pg.ViewBox):
             # Start drawing
             self.rubber_band_origin = self.mapToView(ev.pos())
             
-            # Create a temporary ROI for visualization
+            # Create a temporary ROI for visualization with minimum size to avoid div by zero
             temp_pen = pg.mkPen('y', width=1, style=Qt.PenStyle.DashLine)
             
             if self.roi_type == "rect":
+                # Create with non-zero size to avoid division by zero
                 self.temp_roi = pg.ROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                       size=[0, 0], pen=temp_pen, movable=False)
+                                       size=[1, 1], pen=temp_pen, movable=False)
             elif self.roi_type == "ellipse":
+                # Create with non-zero size to avoid division by zero
                 self.temp_roi = pg.EllipseROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                             size=[0, 0], pen=temp_pen, movable=False)
+                                             size=[1, 1], pen=temp_pen, movable=False)
             
             view_widget = self.getViewWidget()
             view_widget.addItem(self.temp_roi)
@@ -57,8 +59,8 @@ class RubberBandROICreator(pg.ViewBox):
             # Calculate size and position for the temporary ROI
             x = min(self.rubber_band_origin.x(), current_pos.x())
             y = min(self.rubber_band_origin.y(), current_pos.y())
-            width = abs(current_pos.x() - self.rubber_band_origin.x())
-            height = abs(current_pos.y() - self.rubber_band_origin.y())
+            width = max(1, abs(current_pos.x() - self.rubber_band_origin.x()))  # Min width of 1
+            height = max(1, abs(current_pos.y() - self.rubber_band_origin.y())) # Min height of 1
             
             # Update the temporary ROI
             self.temp_roi.setPos(x, y)
@@ -84,7 +86,7 @@ class RubberBandROICreator(pg.ViewBox):
                 view_widget.removeItem(self.temp_roi)
                 self.temp_roi = None
                 
-                # Only create if it's a reasonable size
+                # Only create if it's a reasonable size (ensure minimum size)
                 if size[0] > 5 and size[1] > 5:
                     self.create_final_roi(pos, size)
                 
