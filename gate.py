@@ -33,7 +33,7 @@ class RubberBandROICreator(pg.ViewBox):
             self.rubber_band_origin = self.mapToView(ev.pos())
             
             # Create a temporary ROI for visualization with minimum size to avoid div by zero
-            temp_pen = pg.mkPen('y', width=1, style=Qt.PenStyle.DashLine)
+            temp_pen = pg.mkPen('r', width=1, style=Qt.PenStyle.DashLine)
             
             # Create handle pens for temporary ROIs
             temp_handle_pen = pg.mkPen(color=(100, 100, 255), width=1.5)  # Light blue
@@ -136,6 +136,13 @@ class RubberBandROICreator(pg.ViewBox):
             roi.addScaleHandle([1, 1], [0, 0])
             roi.addScaleHandle([0, 1], [1, 0])
             roi.addScaleHandle([1, 0], [0, 1])
+            
+            # Add a rotation handle at the top
+            roi.addRotateHandle([0.5, 0], [0.5, 0.5])
+            
+            # Custom handle colors
+            self.customize_roi_handles(roi, (0, 200, 0, 230))
+            
         elif self.roi_type == "ellipse":
             # Create fill brush - semi-transparent blue
             fill_brush = pg.mkBrush(0, 0, 255, 70)  # Blue with 70/255 alpha
@@ -161,6 +168,9 @@ class RubberBandROICreator(pg.ViewBox):
             
             # Replace the paint method
             roi.paint = types.MethodType(paint_with_fill, roi)
+            
+            # Custom handle colors
+            self.customize_roi_handles(roi, (255, 165, 0, 230))
         
         # Add to view and store reference
         view_widget = self.getViewWidget()
@@ -169,6 +179,33 @@ class RubberBandROICreator(pg.ViewBox):
         
         # Connect signals if needed
         roi.sigRegionChanged.connect(self.roi_changed)
+    
+    def customize_roi_handles(self, roi, fill_color):
+        """Add custom fill colors to the ROI handles using a separate method"""
+        # Get all handles from the ROI
+        handles = roi.getHandles()
+        
+        # Create a brush with the specified fill color
+        brush = pg.mkBrush(fill_color)
+        
+        # Modify each handle to use the brush
+        for handle in handles:
+            # We need to modify the buildPath method of each handle
+            original_build_path = handle.buildPath
+            
+            # Create a new buildPath method that sets the brush
+            def new_build_path(self=handle):
+                # Call the original method to build the path
+                path = original_build_path()
+                # Set the brush for the handle
+                self.setBrush(brush)
+                return path
+            
+            # Replace the buildPath method
+            handle.buildPath = types.MethodType(new_build_path, handle)
+            
+            # Force update the handle
+            handle.update()
     
     def roi_changed(self, roi):
         """Handle ROI changes"""
