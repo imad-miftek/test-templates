@@ -1,12 +1,133 @@
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget, QMenu
+from PyQt6.QtCore import Qt, QPointF, QRectF
+from PyQt6.QtGui import QPen, QCursor
 import numpy as np
 
+class RubberBandROICreator(pg.ViewBox):
+    """ViewBox extension that allows rubber band creation of ROIs"""
+    
+    def __init__(self, parent=None, border=None, lockAspect=False, enableMenu=True):
+        pg.ViewBox.__init__(self, parent, border, lockAspect, enableMenu)
+        self.rubber_band_origin = None
+        self.temp_roi = None
+        self.drawing = False
+        self.rois = []  # Store created ROIs
+        
+        # Set up context menu to add different ROI types
+        self.menu.addSeparator()
+        self.roi_menu = self.menu.addMenu("Add ROI")
+        self.roi_menu.addAction("Rectangle").triggered.connect(lambda: self.start_roi_creation("rect"))
+        self.roi_menu.addAction("Ellipse").triggered.connect(lambda: self.start_roi_creation("ellipse"))
+        
+    def start_roi_creation(self, roi_type):
+        """Start drawing ROI of specified type at cursor position"""
+        self.roi_type = roi_type
+        self.drawing = True
+        self.scene().installEventFilter(self)
+        
+    def mousePressEvent(self, ev):
+        if self.drawing and ev.button() == Qt.MouseButton.LeftButton:
+            # Start drawing
+            self.rubber_band_origin = self.mapToView(ev.pos())
+            
+            # Create a temporary ROI for visualization
+            temp_pen = pg.mkPen('y', width=1, style=Qt.PenStyle.DashLine)
+            
+            if self.roi_type == "rect":
+                self.temp_roi = pg.ROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
+                                       size=[0, 0], pen=temp_pen, movable=False)
+            elif self.roi_type == "ellipse":
+                self.temp_roi = pg.EllipseROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
+                                             size=[0, 0], pen=temp_pen, movable=False)
+            
+            view_widget = self.getViewWidget()
+            view_widget.addItem(self.temp_roi)
+            ev.accept()
+            return
+        
+        # Default behavior for other mouse events
+        pg.ViewBox.mousePressEvent(self, ev)
+    
+    def mouseMoveEvent(self, ev):
+        if self.drawing and self.temp_roi is not None:
+            # Get current position in view coordinates
+            current_pos = self.mapToView(ev.pos())
+            
+            # Calculate size and position for the temporary ROI
+            x = min(self.rubber_band_origin.x(), current_pos.x())
+            y = min(self.rubber_band_origin.y(), current_pos.y())
+            width = abs(current_pos.x() - self.rubber_band_origin.x())
+            height = abs(current_pos.y() - self.rubber_band_origin.y())
+            
+            # Update the temporary ROI
+            self.temp_roi.setPos(x, y)
+            self.temp_roi.setSize([width, height])
+            ev.accept()
+            return
+            
+        # Default behavior for other mouse events
+        pg.ViewBox.mouseMoveEvent(self, ev)
+    
+    def mouseReleaseEvent(self, ev):
+        if self.drawing and ev.button() == Qt.MouseButton.LeftButton:
+            # Finish drawing
+            self.drawing = False
+            
+            if self.temp_roi is not None:
+                # Create the final ROI
+                pos = self.temp_roi.pos()
+                size = self.temp_roi.size()
+                
+                # Remove temporary ROI
+                view_widget = self.getViewWidget()
+                view_widget.removeItem(self.temp_roi)
+                self.temp_roi = None
+                
+                # Only create if it's a reasonable size
+                if size[0] > 5 and size[1] > 5:
+                    self.create_final_roi(pos, size)
+                
+            ev.accept()
+            return
+            
+        # Default behavior for other mouse events
+        pg.ViewBox.mouseReleaseEvent(self, ev)
+    
+    def create_final_roi(self, pos, size):
+        """Create the actual ROI based on the rubber band selection"""
+        # Create the appropriate ROI type
+        if self.roi_type == "rect":
+            roi = pg.RectROI(pos=pos, size=size, pen=pg.mkPen('r', width=2))
+            # Add handles to the ROI
+            roi.addScaleHandle([0, 0], [1, 1])
+            roi.addScaleHandle([1, 1], [0, 0])
+            roi.addScaleHandle([0, 1], [1, 0])
+            roi.addScaleHandle([1, 0], [0, 1])
+        elif self.roi_type == "ellipse":
+            roi = pg.EllipseROI(pos=pos, size=size, pen=pg.mkPen('b', width=2))
+        
+        # Add to view and store reference
+        view_widget = self.getViewWidget()
+        view_widget.addItem(roi)
+        self.rois.append(roi)
+        
+        # Connect signals if needed
+        roi.sigRegionChanged.connect(self.roi_changed)
+    
+    def roi_changed(self, roi):
+        """Handle ROI changes"""
+        # You can implement filtering logic here based on the ROI position/shape
+        pass
+    
+    def getViewWidget(self):
+        """Helper method to get the parent view widget"""
+        return self.parentItem()
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gate Demo")
+        self.setWindowTitle("Interactive ROI Creation Demo")
         self.setGeometry(100, 100, 800, 600)
 
         # Create the main widget and layout
@@ -14,10 +135,10 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        # Create PlotWidget
-        self.plot = pg.PlotWidget()
-        self.plot.showGrid(True, True)
+        # Create PlotWidget with custom ViewBox
+        self.plot = pg.PlotWidget(viewBox=RubberBandROICreator())
         self.plot.setBackground('w')
+        self.plot.showGrid(True, True)
         
         # Create a scatter plot with random data
         self.create_data()
@@ -30,22 +151,12 @@ class MainWindow(QMainWindow):
         )
         self.plot.addItem(self.scatter)
         
-        # Create a rectangular ROI gate
-        self.roi = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('r', width=2))
-        self.roi.addScaleHandle([0, 0], [1, 1])
-        self.roi.addScaleHandle([1, 1], [0, 0])
-        self.roi.addScaleHandle([0, 1], [1, 0])
-        self.roi.addScaleHandle([1, 0], [0, 1])
-        self.plot.addItem(self.roi)
-        
-        # Connect ROI changes to our handler function
-        self.roi.sigRegionChanged.connect(self.update_gate)
-        
         # Add plot to layout
         layout.addWidget(self.plot)
         
-        # Set initial gate
-        self.update_gate()
+        # Add instructions
+        print("Right-click on the plot to open the context menu and select 'Add ROI'")
+        print("Then click and drag to create ROIs with rubber band animation")
 
     def create_data(self):
         """Create random data for the scatter plot"""
@@ -63,58 +174,6 @@ class MainWindow(QMainWindow):
         # Combine data
         self.x_data = np.concatenate([x1, x2])
         self.y_data = np.concatenate([y1, y2])
-        
-        # Original points for reference
-        self.original_points = {
-            'x': self.x_data.copy(),
-            'y': self.y_data.copy()
-        }
-    
-    def update_gate(self):
-        """Update filtered data based on ROI position"""
-        # Get ROI bounds
-        bounds = self.roi.parentBounds()
-        x_min, y_min = bounds.left(), bounds.top()
-        x_max, y_max = bounds.right(), bounds.bottom()
-        
-        # Apply gate: filter points that are inside the ROI
-        mask = (
-            (self.original_points['x'] >= x_min) & 
-            (self.original_points['x'] <= x_max) & 
-            (self.original_points['y'] >= y_min) & 
-            (self.original_points['y'] <= y_max)
-        )
-        
-        # Get filtered data
-        filtered_x = self.original_points['x'][mask]
-        filtered_y = self.original_points['y'][mask]
-        
-        # Create a new scatter plot with highlighted points
-        self.plot.removeItem(self.scatter)
-        
-        # First add all points (gray)
-        self.scatter = pg.ScatterPlotItem(
-            x=self.original_points['x'],
-            y=self.original_points['y'],
-            pen=None,
-            brush=pg.mkBrush(100, 100, 100, 50),
-            size=10
-        )
-        self.plot.addItem(self.scatter)
-        
-        # Then add selected points (blue)
-        self.selected_scatter = pg.ScatterPlotItem(
-            x=filtered_x,
-            y=filtered_y,
-            pen=None,
-            brush=pg.mkBrush(30, 30, 200, 200),
-            size=10
-        )
-        self.plot.addItem(self.selected_scatter)
-        
-        # Update status
-        print(f"Selected {len(filtered_x)} points")
-
 
 if __name__ == '__main__':
     app = QApplication([])
