@@ -33,7 +33,7 @@ class RubberBandROICreator(pg.ViewBox):
             self.rubber_band_origin = self.mapToView(ev.pos())
             
             # Create a temporary ROI for visualization with minimum size to avoid div by zero
-            temp_pen = pg.mkPen('r', width=1, style=Qt.PenStyle.DashLine)
+            temp_pen = pg.mkPen('r', width=1, style=Qt.PenStyle.SolidLine)
             
             # Create handle pens for temporary ROIs
             temp_handle_pen = pg.mkPen(color=(100, 100, 255), width=1.5)  # Light blue
