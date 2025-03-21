@@ -1,8 +1,9 @@
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget, QMenu
 from PyQt6.QtCore import Qt, QPointF, QRectF
-from PyQt6.QtGui import QPen, QCursor
+from PyQt6.QtGui import QPen, QCursor, QPainter
 import numpy as np
+import types
 
 class RubberBandROICreator(pg.ViewBox):
     """ViewBox extension that allows rubber band creation of ROIs"""
@@ -100,14 +101,46 @@ class RubberBandROICreator(pg.ViewBox):
         """Create the actual ROI based on the rubber band selection"""
         # Create the appropriate ROI type
         if self.roi_type == "rect":
+            # Create fill brush - semi-transparent red
+            fill_brush = pg.mkBrush(255, 0, 0, 70)  # Red with 70/255 alpha
+            
             roi = pg.RectROI(pos=pos, size=size, pen=pg.mkPen('r', width=2))
+            
+            # Custom paint method to add fill to RectROI
+            def paint_with_fill(self, p, *args):
+                # First fill with brush
+                r = QRectF(0, 0, self.state['size'][0], self.state['size'][1]).normalized()
+                p.setRenderHint(QPainter.RenderHint.Antialiasing, self._antialias)
+                p.setPen(self.currentPen)
+                p.setBrush(fill_brush)
+                p.drawRect(r)
+            
+            # Replace the paint method
+            roi.paint = types.MethodType(paint_with_fill, roi)
+            
             # Add handles to the ROI
             roi.addScaleHandle([0, 0], [1, 1])
             roi.addScaleHandle([1, 1], [0, 0])
             roi.addScaleHandle([0, 1], [1, 0])
             roi.addScaleHandle([1, 0], [0, 1])
         elif self.roi_type == "ellipse":
+            # Create fill brush - semi-transparent blue
+            fill_brush = pg.mkBrush(0, 0, 255, 70)  # Blue with 70/255 alpha
+            
             roi = pg.EllipseROI(pos=pos, size=size, pen=pg.mkPen('b', width=2))
+            
+            # Custom paint method to add fill to EllipseROI
+            def paint_with_fill(self, p, *args):
+                p.setRenderHint(QPainter.RenderHint.Antialiasing, self._antialias)
+                p.setPen(self.currentPen)
+                p.setBrush(fill_brush)
+                
+                # Draw the ellipse with fill
+                rect = QRectF(0, 0, self.state['size'][0], self.state['size'][1])
+                p.drawEllipse(rect)
+            
+            # Replace the paint method
+            roi.paint = types.MethodType(paint_with_fill, roi)
         
         # Add to view and store reference
         view_widget = self.getViewWidget()
