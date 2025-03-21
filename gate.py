@@ -35,14 +35,20 @@ class RubberBandROICreator(pg.ViewBox):
             # Create a temporary ROI for visualization with minimum size to avoid div by zero
             temp_pen = pg.mkPen('y', width=1, style=Qt.PenStyle.DashLine)
             
+            # Create handle pens for temporary ROIs
+            temp_handle_pen = pg.mkPen(color=(100, 100, 255), width=1.5)  # Light blue
+            temp_handle_hover_pen = pg.mkPen(color=(100, 255, 100), width=2)  # Light green
+            
             if self.roi_type == "rect":
                 # Create with non-zero size to avoid division by zero
                 self.temp_roi = pg.ROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                       size=[0.1, 0.1], pen=temp_pen, movable=True)
+                                       size=[0.1, 0.1], pen=temp_pen, movable=True,
+                                       handlePen=temp_handle_pen, handleHoverPen=temp_handle_hover_pen)
             elif self.roi_type == "ellipse":
                 # Create with non-zero size to avoid division by zero
                 self.temp_roi = pg.EllipseROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                             size=[0.1, 0.1], pen=temp_pen, movable=True)
+                                             size=[0.1, 0.1], pen=temp_pen, movable=True,
+                                             handlePen=temp_handle_pen, handleHoverPen=temp_handle_hover_pen)
             
             view_widget = self.getViewWidget()
             view_widget.addItem(self.temp_roi)
@@ -104,7 +110,14 @@ class RubberBandROICreator(pg.ViewBox):
             # Create fill brush - semi-transparent red
             fill_brush = pg.mkBrush(255, 0, 0, 70)  # Red with 70/255 alpha
             
-            roi = pg.RectROI(pos=pos, size=size, pen=pg.mkPen('r', width=2))
+            # Create custom pens for handles
+            handle_pen = pg.mkPen(color=(0, 200, 0), width=2)  # Green pen for handles
+            handle_hover_pen = pg.mkPen(color=(255, 255, 0), width=3)  # Yellow pen for handle hover state
+            
+            roi = pg.RectROI(pos=pos, size=size, 
+                            pen=pg.mkPen('r', width=2),
+                            handlePen=handle_pen,
+                            handleHoverPen=handle_hover_pen)
             
             # Custom paint method to add fill to RectROI
             def paint_with_fill(self, p, *args):
@@ -127,7 +140,14 @@ class RubberBandROICreator(pg.ViewBox):
             # Create fill brush - semi-transparent blue
             fill_brush = pg.mkBrush(0, 0, 255, 70)  # Blue with 70/255 alpha
             
-            roi = pg.EllipseROI(pos=pos, size=size, pen=pg.mkPen('b', width=2))
+            # Create custom pens for handles
+            handle_pen = pg.mkPen(color=(255, 165, 0), width=2)  # Orange pen for handles
+            handle_hover_pen = pg.mkPen(color=(255, 0, 255), width=3)  # Magenta pen for handle hover state
+            
+            roi = pg.EllipseROI(pos=pos, size=size, 
+                               pen=pg.mkPen('b', width=2),
+                               handlePen=handle_pen,
+                               handleHoverPen=handle_hover_pen)
             
             # Custom paint method to add fill to EllipseROI
             def paint_with_fill(self, p, *args):
