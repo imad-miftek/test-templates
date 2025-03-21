@@ -38,11 +38,11 @@ class RubberBandROICreator(pg.ViewBox):
             if self.roi_type == "rect":
                 # Create with non-zero size to avoid division by zero
                 self.temp_roi = pg.ROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                       size=[1, 1], pen=temp_pen, movable=False)
+                                       size=[0.1, 0.1], pen=temp_pen, movable=True)
             elif self.roi_type == "ellipse":
                 # Create with non-zero size to avoid division by zero
                 self.temp_roi = pg.EllipseROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                             size=[1, 1], pen=temp_pen, movable=False)
+                                             size=[0.1, 0.1], pen=temp_pen, movable=True)
             
             view_widget = self.getViewWidget()
             view_widget.addItem(self.temp_roi)
