@@ -15,6 +15,10 @@ class RubberBandROICreator(pg.ViewBox):
         self.drawing = False
         self.rois = []  # Store created ROIs
         
+        # For storing panning state
+        self._original_mouse_enabled_x = True
+        self._original_mouse_enabled_y = True
+        
         # Set up context menu to add different ROI types
         self.menu.addSeparator()
         self.roi_menu = self.menu.addMenu("Add ROI")
@@ -25,6 +29,14 @@ class RubberBandROICreator(pg.ViewBox):
         """Start drawing ROI of specified type at cursor position"""
         self.roi_type = roi_type
         self.drawing = True
+        
+        # Store current mouse enabled state
+        self._original_mouse_enabled_x = self.state['mouseEnabled'][0]
+        self._original_mouse_enabled_y = self.state['mouseEnabled'][1]
+        
+        # Disable panning during gate creation
+        self.setMouseEnabled(x=False, y=False)
+        
         self.scene().installEventFilter(self)
         
     def mousePressEvent(self, ev):
@@ -32,23 +44,67 @@ class RubberBandROICreator(pg.ViewBox):
             # Start drawing
             self.rubber_band_origin = self.mapToView(ev.pos())
             
-            # Create a temporary ROI for visualization with minimum size to avoid div by zero
-            temp_pen = pg.mkPen('r', width=1, style=Qt.PenStyle.SolidLine)
-            
-            # Create handle pens for temporary ROIs
-            temp_handle_pen = pg.mkPen(color=(100, 100, 255), width=1.5)  # Light blue
-            temp_handle_hover_pen = pg.mkPen(color=(100, 255, 100), width=2)  # Light green
-            
+            # Use final styling for temp ROI to maintain consistent look
             if self.roi_type == "rect":
+                # Create fill brush - semi-transparent red
+                fill_brush = pg.mkBrush(255, 0, 0, 70)  # Red with 70/255 alpha
+                
+                # Create custom pens for handles
+                handle_pen = pg.mkPen(color=(0, 200, 0), width=2)  # Green pen for handles
+                handle_hover_pen = pg.mkPen(color=(255, 255, 0), width=3)  # Yellow pen for handle hover state
+                
                 # Create with non-zero size to avoid division by zero
-                self.temp_roi = pg.ROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                       size=[0.1, 0.1], pen=temp_pen, movable=True,
-                                       handlePen=temp_handle_pen, handleHoverPen=temp_handle_hover_pen)
+                self.temp_roi = pg.RectROI(
+                    pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
+                    size=[1, 1],  # Use 1,1 instead of 0.1,0.1 to avoid scaling issues
+                    pen=pg.mkPen('r', width=2),
+                    handlePen=handle_pen,
+                    handleHoverPen=handle_hover_pen,
+                    movable=False
+                )
+                
+                # Custom paint method to add fill to RectROI
+                def paint_with_fill(self, p, *args):
+                    # First fill with brush
+                    r = QRectF(0, 0, self.state['size'][0], self.state['size'][1]).normalized()
+                    p.setRenderHint(QPainter.RenderHint.Antialiasing, self._antialias)
+                    p.setPen(self.currentPen)
+                    p.setBrush(fill_brush)
+                    p.drawRect(r)
+                
+                # Replace the paint method
+                self.temp_roi.paint = types.MethodType(paint_with_fill, self.temp_roi)
+                
             elif self.roi_type == "ellipse":
+                # Create fill brush - semi-transparent blue
+                fill_brush = pg.mkBrush(0, 0, 255, 70)  # Blue with 70/255 alpha
+                
+                # Create custom pens for handles
+                handle_pen = pg.mkPen(color=(255, 165, 0), width=2)  # Orange pen for handles
+                handle_hover_pen = pg.mkPen(color=(255, 0, 255), width=3)  # Magenta pen for handle hover state
+                
                 # Create with non-zero size to avoid division by zero
-                self.temp_roi = pg.EllipseROI(pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                                             size=[0.1, 0.1], pen=temp_pen, movable=True,
-                                             handlePen=temp_handle_pen, handleHoverPen=temp_handle_hover_pen)
+                self.temp_roi = pg.EllipseROI(
+                    pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
+                    size=[1, 1],  # Use 1,1 instead of 0.1,0.1 to avoid scaling issues
+                    pen=pg.mkPen('b', width=2),
+                    handlePen=handle_pen,
+                    handleHoverPen=handle_hover_pen,
+                    movable=False
+                )
+                
+                # Custom paint method to add fill to EllipseROI
+                def paint_with_fill(self, p, *args):
+                    p.setRenderHint(QPainter.RenderHint.Antialiasing, self._antialias)
+                    p.setPen(self.currentPen)
+                    p.setBrush(fill_brush)
+                    
+                    # Draw the ellipse with fill
+                    rect = QRectF(0, 0, self.state['size'][0], self.state['size'][1])
+                    p.drawEllipse(rect)
+                
+                # Replace the paint method
+                self.temp_roi.paint = types.MethodType(paint_with_fill, self.temp_roi)
             
             view_widget = self.getViewWidget()
             view_widget.addItem(self.temp_roi)
@@ -96,6 +152,9 @@ class RubberBandROICreator(pg.ViewBox):
                 # Only create if it's a reasonable size (ensure minimum size)
                 if size[0] > 5 and size[1] > 5:
                     self.create_final_roi(pos, size)
+            
+            # Restore original mouse enabled state
+            self.setMouseEnabled(x=self._original_mouse_enabled_x, y=self._original_mouse_enabled_y)
                 
             ev.accept()
             return
