@@ -1,4 +1,5 @@
 import pyqtgraph as pg
+from pyqtgraph.graphicsItems.ROI import Handle
 from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget, QMenu
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QPen, QCursor, QPainter
@@ -244,7 +245,7 @@ class RubberBandROICreator(pg.ViewBox):
     def customize_roi_handles(self, roi, fill_color):
         """Add custom fill colors to the ROI handles using a separate method"""
         # Get all handles from the ROI
-        handles = roi.getHandles()
+        handles : list[Handle] = roi.getHandles()
         
         # Create a brush with the specified fill color
         brush = pg.mkBrush(fill_color)
