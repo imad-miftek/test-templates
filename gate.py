@@ -1,8 +1,10 @@
 import pyqtgraph as pg
+from pyqtgraph.graphicsItems.ROI import Handle
 from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter
 import numpy as np
+import types
 
 class RubberBandROICreator(pg.ViewBox):
     """ViewBox extension that allows rubber band creation of ROIs"""
@@ -112,6 +114,18 @@ class RubberBandROICreator(pg.ViewBox):
                 pos=pos, size=size, 
                 pen=pg.mkPen('k', width=2),
             )
+
+        handles : list[Handle] = roi.getHandles()
+        for handle in handles:
+            original_paint = handle.paint
+        
+            def enhanced_paint(self, p, opt, widget):
+                original_paint(p, opt, widget)
+                p.setBrush(pg.mkBrush(0, 0, 0, 255))  # Red with 150/255 alpha
+                p.setPen(pg.mkPen(0, 0, 0, 255))  # Red outline
+                p.drawPath(self.shape())
+
+            handle.paint = types.MethodType(enhanced_paint, handle)
         
         # Add to view and store reference
         self.getViewWidget().addItem(roi)
