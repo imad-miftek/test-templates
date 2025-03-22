@@ -53,10 +53,10 @@ class EllipseGate(Gate):
         self.enhance_handles()
         return self.roi
 
-class GateManager:
-    """Manages creation and tracking of gates/ROIs"""
-    def __init__(self, view_box):
-        self.view_box = view_box
+class GateViewBox(pg.ViewBox):
+    """ViewBox with integrated gate creation and management capabilities"""
+    def __init__(self, parent=None, border=None, lockAspect=False, enableMenu=True):
+        super().__init__(parent, border, lockAspect, enableMenu)
         self.gates = []
         self.temp_gate = None
         self.drawing = False
@@ -64,8 +64,8 @@ class GateManager:
         
     def setup_menu(self):
         """Set up the context menu for gate creation"""
-        self.view_box.menu.addSeparator()
-        self.gate_menu = self.view_box.menu.addMenu("Add Gate")
+        self.menu.addSeparator()
+        self.gate_menu = self.menu.addMenu("Add Gate")
         self.gate_menu.addAction("Rectangle").triggered.connect(
             lambda: self.start_gate_creation(GateType.RECTANGLE))
         self.gate_menu.addAction("Ellipse").triggered.connect(
@@ -75,8 +75,8 @@ class GateManager:
         """Start drawing a new gate"""
         self.gate_type = gate_type
         self.drawing = True
-        self._original_mouse_enabled = self.view_box.state['mouseEnabled'][:]
-        self.view_box.setMouseEnabled(x=False, y=False)
+        self._original_mouse_enabled = self.state['mouseEnabled'][:]
+        self.setMouseEnabled(x=False, y=False)
     
     def create_temp_gate(self, pos):
         """Create temporary gate during drawing"""
@@ -93,55 +93,48 @@ class GateManager:
         gate = (RectGate if self.gate_type == GateType.RECTANGLE else EllipseGate)(
             pos=pos, size=size)
         roi = gate.create()
-        self.view_box.addItem(roi)
+        self.addItem(roi)
         self.gates.append(gate)
         return roi
-
-class GateViewBox(pg.ViewBox):
-    """ViewBox with gate creation capabilities"""
-    def __init__(self, parent=None, border=None, lockAspect=False, enableMenu=True):
-        super().__init__(parent, border, lockAspect, enableMenu)
-        self.gate_manager = GateManager(self)
         
     def mousePressEvent(self, ev):
-        if self.gate_manager.drawing and ev.button() == Qt.MouseButton.LeftButton:
+        if self.drawing and ev.button() == Qt.MouseButton.LeftButton:
             pos = self.mapToView(ev.pos())
-            self.gate_manager.temp_gate = self.gate_manager.create_temp_gate(pos)
-            self.addItem(self.gate_manager.temp_gate)
-            self.gate_manager.rubber_band_origin = pos
+            self.temp_gate = self.create_temp_gate(pos)
+            self.addItem(self.temp_gate)
+            self.rubber_band_origin = pos
             ev.accept()
             return
         super().mousePressEvent(ev)
 
     def mouseMoveEvent(self, ev):
-        if self.gate_manager.drawing and self.gate_manager.temp_gate is not None:
+        if self.drawing and self.temp_gate is not None:
             current_pos = self.mapToView(ev.pos())
-            origin = self.gate_manager.rubber_band_origin
-            x = min(origin.x(), current_pos.x())
-            y = min(origin.y(), current_pos.y())
-            width = max(1, abs(current_pos.x() - origin.x()))
-            height = max(1, abs(current_pos.y() - origin.y()))
+            x = min(self.rubber_band_origin.x(), current_pos.x())
+            y = min(self.rubber_band_origin.y(), current_pos.y())
+            width = max(1, abs(current_pos.x() - self.rubber_band_origin.x()))
+            height = max(1, abs(current_pos.y() - self.rubber_band_origin.y()))
             
-            self.gate_manager.temp_gate.setPos(x, y)
-            self.gate_manager.temp_gate.setSize([width, height])
+            self.temp_gate.setPos(x, y)
+            self.temp_gate.setSize([width, height])
             ev.accept()
             return
         super().mouseMoveEvent(ev)
 
     def mouseReleaseEvent(self, ev):
-        if self.gate_manager.drawing and ev.button() == Qt.MouseButton.LeftButton:
-            self.gate_manager.drawing = False
+        if self.drawing and ev.button() == Qt.MouseButton.LeftButton:
+            self.drawing = False
             
-            if self.gate_manager.temp_gate is not None:
-                pos = self.gate_manager.temp_gate.pos()
-                size = self.gate_manager.temp_gate.size()
-                self.removeItem(self.gate_manager.temp_gate)
-                self.gate_manager.temp_gate = None
-                self.gate_manager.create_final_gate(pos, size)
+            if self.temp_gate is not None:
+                pos = self.temp_gate.pos()
+                size = self.temp_gate.size()
+                self.removeItem(self.temp_gate)
+                self.temp_gate = None
+                self.create_final_gate(pos, size)
             
             self.setMouseEnabled(
-                x=self.gate_manager._original_mouse_enabled[0],
-                y=self.gate_manager._original_mouse_enabled[1]
+                x=self._original_mouse_enabled[0],
+                y=self._original_mouse_enabled[1]
             )
             ev.accept()
             return
