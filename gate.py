@@ -39,13 +39,13 @@ class RubberBandROICreator(pg.ViewBox):
                 self.temp_roi = pg.RectROI(
                     pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
                     size=[1, 1],
-                    pen=pg.mkPen('r', width=2),
+                    pen=pg.mkPen('k', width=2),
                 )
             else:  # ellipse
                 self.temp_roi = pg.EllipseROI(
                     pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
                     size=[1, 1],
-                    pen=pg.mkPen('b', width=2),
+                    pen=pg.mkPen('k', width=2),
                 )
             
             self.getViewWidget().addItem(self.temp_roi)
@@ -101,14 +101,14 @@ class RubberBandROICreator(pg.ViewBox):
         if self.roi_type == "rect":
             roi = pg.RectROI(
                 pos=pos, size=size, 
-                pen=pg.mkPen('r', width=2),
+                pen=pg.mkPen('k', width=2),
             )
             roi.addScaleHandle([0, 0], [1, 1])
             roi.addScaleHandle([1, 1], [0, 0])
         else:  # ellipse
             roi = pg.EllipseROI(
                 pos=pos, size=size, 
-                pen=pg.mkPen('b', width=2),
+                pen=pg.mkPen('k', width=2),
             )
         
         # Add to view and store reference
