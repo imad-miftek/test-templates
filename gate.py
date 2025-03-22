@@ -105,6 +105,8 @@ class RubberBandROICreator(pg.ViewBox):
             )
             roi.addScaleHandle([0, 0], [1, 1])
             roi.addScaleHandle([1, 1], [0, 0])
+            roi.addScaleHandle([1, 0], [0, 1])
+            roi.addScaleHandle([0, 1], [1, 0])
         else:  # ellipse
             roi = pg.EllipseROI(
                 pos=pos, size=size, 
