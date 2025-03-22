@@ -5,149 +5,160 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter
 import numpy as np
 import types
+from enum import Enum, auto
 
-class RubberBandROICreator(pg.ViewBox):
-    """ViewBox extension that allows rubber band creation of ROIs"""
-    
-    def __init__(self, parent=None, border=None, lockAspect=False, enableMenu=True):
-        pg.ViewBox.__init__(self, parent, border, lockAspect, enableMenu)
-        self.rubber_band_origin = None
-        self.temp_roi = None
-        self.drawing = False
-        self.rois = []  # Store created ROIs
-        
-        # Set up context menu
-        self.menu.addSeparator()
-        self.roi_menu = self.menu.addMenu("Add ROI")
-        self.roi_menu.addAction("Rectangle").triggered.connect(lambda: self.start_roi_creation("rect"))
-        self.roi_menu.addAction("Ellipse").triggered.connect(lambda: self.start_roi_creation("ellipse"))
-        
-    def start_roi_creation(self, roi_type):
-        """Start drawing ROI of specified type"""
-        self.roi_type = roi_type
-        self.drawing = True
-        
-        # Disable panning during gate creation
-        self._original_mouse_enabled = self.state['mouseEnabled'][:]
-        self.setMouseEnabled(x=False, y=False)
-        
-    def mousePressEvent(self, ev):
-        if self.drawing and ev.button() == Qt.MouseButton.LeftButton:
-            # Start drawing
-            self.rubber_band_origin = self.mapToView(ev.pos())
-            
-            # Create temporary ROI based on type
-            if self.roi_type == "rect":
-                self.temp_roi = pg.RectROI(
-                    pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                    size=[1, 1],
-                    pen=pg.mkPen('k', width=2),
-                )
-            else:  # ellipse
-                self.temp_roi = pg.EllipseROI(
-                    pos=[self.rubber_band_origin.x(), self.rubber_band_origin.y()], 
-                    size=[1, 1],
-                    pen=pg.mkPen('k', width=2),
-                )
-            
-            self.getViewWidget().addItem(self.temp_roi)
-            ev.accept()
-            return
-        
-        pg.ViewBox.mousePressEvent(self, ev)
-    
-    def mouseMoveEvent(self, ev):
-        if self.drawing and self.temp_roi is not None:
-            # Update ROI size/position
-            current_pos = self.mapToView(ev.pos())
-            x = min(self.rubber_band_origin.x(), current_pos.x())
-            y = min(self.rubber_band_origin.y(), current_pos.y())
-            width = max(1, abs(current_pos.x() - self.rubber_band_origin.x()))
-            height = max(1, abs(current_pos.y() - self.rubber_band_origin.y()))
-            
-            self.temp_roi.setPos(x, y)
-            self.temp_roi.setSize([width, height])
-            ev.accept()
-            return
-            
-        pg.ViewBox.mouseMoveEvent(self, ev)
-    
-    def mouseReleaseEvent(self, ev):
-        if self.drawing and ev.button() == Qt.MouseButton.LeftButton:
-            # Finish drawing
-            self.drawing = False
-            
-            if self.temp_roi is not None:
-                pos = self.temp_roi.pos()
-                size = self.temp_roi.size()
-                
-                # Remove temporary ROI
-                self.getViewWidget().removeItem(self.temp_roi)
-                self.temp_roi = None
-                
-                # Only create if it's a reasonable size
-                if size[0] > 5 and size[1] > 5:
-                    self.create_final_roi(pos, size)
-            
-            # Restore original mouse enabled state
-            self.setMouseEnabled(x=self._original_mouse_enabled[0], 
-                               y=self._original_mouse_enabled[1])
-                
-            ev.accept()
-            return
-            
-        pg.ViewBox.mouseReleaseEvent(self, ev)
-    
-    def create_final_roi(self, pos, size):
-        """Create the final ROI based on rubber band selection"""
-        if self.roi_type == "rect":
-            roi = pg.RectROI(
-                pos=pos, size=size, 
-                pen=pg.mkPen('k', width=2),
-            )
-            roi.addScaleHandle([0, 0], [1, 1])
-            roi.addScaleHandle([1, 1], [0, 0])
-            roi.addScaleHandle([1, 0], [0, 1])
-            roi.addScaleHandle([0, 1], [1, 0])
-        else:  # ellipse
-            roi = pg.EllipseROI(
-                pos=pos, size=size, 
-                pen=pg.mkPen('k', width=2),
-            )
+class GateType(Enum):
+    RECTANGLE = auto()
+    ELLIPSE = auto()
 
-        handles : list[Handle] = roi.getHandles()
+class Gate:
+    """Base class for all gates/ROIs"""
+    def __init__(self, pos, size, pen=None):
+        self.pos = pos
+        self.size = size
+        self.pen = pen or pg.mkPen('k', width=2)
+        self.roi = None
+        
+    def create(self):
+        """Create the ROI - to be implemented by subclasses"""
+        raise NotImplementedError
+        
+    def enhance_handles(self):
+        """Add enhanced styling to ROI handles"""
+        handles = self.roi.getHandles()
         for handle in handles:
             original_paint = handle.paint
-        
+            
             def enhanced_paint(self, p, opt, widget):
                 original_paint(p, opt, widget)
-                p.setBrush(pg.mkBrush(0, 0, 0, 255))  # Red with 150/255 alpha
-                p.setPen(pg.mkPen(0, 0, 0, 255))  # Red outline
+                p.setBrush(pg.mkBrush(0, 0, 0, 255))
+                p.setPen(pg.mkPen(0, 0, 0, 255))
                 p.drawPath(self.shape())
 
             handle.paint = types.MethodType(enhanced_paint, handle)
+
+class RectGate(Gate):
+    def create(self):
+        self.roi = pg.RectROI(pos=self.pos, size=self.size, pen=self.pen)
+        self.roi.addScaleHandle([0, 0], [1, 1])
+        self.roi.addScaleHandle([1, 1], [0, 0])
+        self.roi.addScaleHandle([1, 0], [0, 1])
+        self.roi.addScaleHandle([0, 1], [1, 0])
+        self.enhance_handles()
+        return self.roi
+
+class EllipseGate(Gate):
+    def create(self):
+        self.roi = pg.EllipseROI(pos=self.pos, size=self.size, pen=self.pen)
+        self.enhance_handles()
+        return self.roi
+
+class GateManager:
+    """Manages creation and tracking of gates/ROIs"""
+    def __init__(self, view_box):
+        self.view_box = view_box
+        self.gates = []
+        self.temp_gate = None
+        self.drawing = False
+        self.setup_menu()
         
-        # Add to view and store reference
-        self.getViewWidget().addItem(roi)
-        self.rois.append(roi)
+    def setup_menu(self):
+        """Set up the context menu for gate creation"""
+        self.view_box.menu.addSeparator()
+        self.gate_menu = self.view_box.menu.addMenu("Add Gate")
+        self.gate_menu.addAction("Rectangle").triggered.connect(
+            lambda: self.start_gate_creation(GateType.RECTANGLE))
+        self.gate_menu.addAction("Ellipse").triggered.connect(
+            lambda: self.start_gate_creation(GateType.ELLIPSE))
+    
+    def start_gate_creation(self, gate_type):
+        """Start drawing a new gate"""
+        self.gate_type = gate_type
+        self.drawing = True
+        self._original_mouse_enabled = self.view_box.state['mouseEnabled'][:]
+        self.view_box.setMouseEnabled(x=False, y=False)
+    
+    def create_temp_gate(self, pos):
+        """Create temporary gate during drawing"""
+        if self.gate_type == GateType.RECTANGLE:
+            return RectGate(pos=[pos.x(), pos.y()], size=[1, 1]).create()
+        else:
+            return EllipseGate(pos=[pos.x(), pos.y()], size=[1, 1]).create()
+    
+    def create_final_gate(self, pos, size):
+        """Create the final gate based on type"""
+        if size[0] <= 5 or size[1] <= 5:
+            return
+            
+        gate = (RectGate if self.gate_type == GateType.RECTANGLE else EllipseGate)(
+            pos=pos, size=size)
+        roi = gate.create()
+        self.view_box.addItem(roi)
+        self.gates.append(gate)
+        return roi
+
+class GateViewBox(pg.ViewBox):
+    """ViewBox with gate creation capabilities"""
+    def __init__(self, parent=None, border=None, lockAspect=False, enableMenu=True):
+        super().__init__(parent, border, lockAspect, enableMenu)
+        self.gate_manager = GateManager(self)
         
-    def getViewWidget(self):
-        """Helper method to get the parent view widget"""
-        return self.parentItem()
+    def mousePressEvent(self, ev):
+        if self.gate_manager.drawing and ev.button() == Qt.MouseButton.LeftButton:
+            pos = self.mapToView(ev.pos())
+            self.gate_manager.temp_gate = self.gate_manager.create_temp_gate(pos)
+            self.addItem(self.gate_manager.temp_gate)
+            self.gate_manager.rubber_band_origin = pos
+            ev.accept()
+            return
+        super().mousePressEvent(ev)
+
+    def mouseMoveEvent(self, ev):
+        if self.gate_manager.drawing and self.gate_manager.temp_gate is not None:
+            current_pos = self.mapToView(ev.pos())
+            origin = self.gate_manager.rubber_band_origin
+            x = min(origin.x(), current_pos.x())
+            y = min(origin.y(), current_pos.y())
+            width = max(1, abs(current_pos.x() - origin.x()))
+            height = max(1, abs(current_pos.y() - origin.y()))
+            
+            self.gate_manager.temp_gate.setPos(x, y)
+            self.gate_manager.temp_gate.setSize([width, height])
+            ev.accept()
+            return
+        super().mouseMoveEvent(ev)
+
+    def mouseReleaseEvent(self, ev):
+        if self.gate_manager.drawing and ev.button() == Qt.MouseButton.LeftButton:
+            self.gate_manager.drawing = False
+            
+            if self.gate_manager.temp_gate is not None:
+                pos = self.gate_manager.temp_gate.pos()
+                size = self.gate_manager.temp_gate.size()
+                self.removeItem(self.gate_manager.temp_gate)
+                self.gate_manager.temp_gate = None
+                self.gate_manager.create_final_gate(pos, size)
+            
+            self.setMouseEnabled(
+                x=self.gate_manager._original_mouse_enabled[0],
+                y=self.gate_manager._original_mouse_enabled[1]
+            )
+            ev.accept()
+            return
+        super().mouseReleaseEvent(ev)
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ROI Creation Demo")
+        self.setWindowTitle("Gate Creation Demo")
         self.setGeometry(100, 100, 800, 600)
 
-        # Create layout
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        # Create PlotWidget with custom ViewBox
-        self.plot = pg.PlotWidget(viewBox=RubberBandROICreator())
+        # Use the new GateViewBox
+        self.plot = pg.PlotWidget(viewBox=GateViewBox())
         self.plot.setBackground('w')
         self.plot.showGrid(True, True)
         
