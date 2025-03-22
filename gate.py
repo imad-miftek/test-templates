@@ -74,6 +74,11 @@ class RubberBandROICreator(pg.ViewBox):
                 
                 # Replace the paint method
                 self.temp_roi.paint = types.MethodType(paint_with_fill, self.temp_roi)
+
+                self.temp_roi.addScaleHandle([0, 0], [1, 1])
+                self.temp_roi.addScaleHandle([1, 1], [0, 0])
+                self.temp_roi.addScaleHandle([0, 1], [1, 0])
+                self.temp_roi.addScaleHandle([1, 0], [0, 1])
                 
             elif self.roi_type == "ellipse":
                 # Create fill brush - semi-transparent blue
@@ -195,9 +200,6 @@ class RubberBandROICreator(pg.ViewBox):
             roi.addScaleHandle([1, 1], [0, 0])
             roi.addScaleHandle([0, 1], [1, 0])
             roi.addScaleHandle([1, 0], [0, 1])
-            
-            # Add a rotation handle at the top
-            roi.addRotateHandle([0.5, 0], [0.5, 0.5])
             
             # Custom handle colors
             self.customize_roi_handles(roi, (0, 200, 0, 230))
