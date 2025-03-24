@@ -19,3 +19,9 @@ class Plot(QWidget):
         roi = pg.RectROI([0, 0], [1, 1], pen='r')
         self.plot.addItem(roi)
         
+
+if __name__ == '__main__':
+    app = QApplication([])
+    window = Plot()
+    window.show()
+    app.exec()

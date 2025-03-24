@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QPen, QColor
 from loguru import logger
 import configparser as cfp
-from pyqt.proxyplot import Plot
+from pyqt.plot import Plot
 
 class Worksheet(QMainWindow):
     def __init__(self):
