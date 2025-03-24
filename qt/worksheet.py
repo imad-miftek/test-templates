@@ -6,9 +6,6 @@ from loguru import logger
 import configparser as cfp
 from pyqt.proxyplot import Plot
 
-class PlotProxyWidget(QGraphicsProxyWidget):
-    pass
-
 class Worksheet(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -46,8 +43,8 @@ class Worksheet(QMainWindow):
     
     def clear_scene(self):
         for item in self.scene.items():
-            if isinstance(item, PlotProxyWidget):
-                self.scene.removeItem(item)
+            if isinstance(item, QGraphicsProxyWidget):
+                item.widget().close()
 
 class WorksheetScene(QGraphicsScene):
     def __init__(self, parent=None):
