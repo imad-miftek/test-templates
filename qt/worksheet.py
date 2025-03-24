@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QPen, QColor
 from loguru import logger
 import configparser as cfp
-from pyqt.
+from pyqt.proxyplot import Plot
 
 class PlotProxyWidget(QGraphicsProxyWidget):
     pass
@@ -34,13 +34,15 @@ class Worksheet(QMainWindow):
         self.context_menu.exec(self.view.mapToGlobal(position))
 
     def add_new_plot(self, plot_type):
-        proxy = PlotProxyWidget()
-        proxy.setFlags(QGraphicsItem.ItemIsMovable | 
-                      QGraphicsItem.ItemIsSelectable)
-        
+        plot = Plot()
+
         view_center = self.view.mapToScene(self.view.viewport().rect().center())
+        
+        proxy = self.scene.addWidget(plot)
         proxy.setPos(view_center)
-        self.scene.addItem(proxy)
+        proxy.setFlag(QGraphicsItem.ItemIsMovable, True)
+        proxy.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        proxy.setFlag(QGraphicsItem.ItemIsFocusable, True)
     
     def clear_scene(self):
         for item in self.scene.items():
