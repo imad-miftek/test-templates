@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PySide6.QtGui import QTransform
 
-import pyqtgraph as pg
+import pyqt as pg
 import numpy as np
 
 from colormaps.colormaps import COLORMAPS

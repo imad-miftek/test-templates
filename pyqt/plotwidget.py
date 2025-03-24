@@ -1,4 +1,4 @@
-import pyqtgraph as pg
+import pyqt as pg
 from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
 
 

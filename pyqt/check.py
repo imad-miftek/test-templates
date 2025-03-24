@@ -1,5 +1,5 @@
 import numpy as np
-import pyqtgraph as pg
+import pyqt as pg
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtGui import QTransform, QFont
 

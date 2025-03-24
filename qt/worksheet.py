@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QPen, QColor
 from loguru import logger
 import configparser as cfp
+from pyqt.
 
 class PlotProxyWidget(QGraphicsProxyWidget):
     pass
@@ -84,3 +85,10 @@ class WorksheetView(QGraphicsView):
         self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+
+if __name__ == '__main__':
+    app = QApplication([])
+    window = Worksheet()
+    window.show()
+    app.exec()
