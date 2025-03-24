@@ -1,6 +1,6 @@
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
-
+from PySide6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
+from qt.worksheet import Worksheet
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -27,6 +27,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
-    window = MainWindow()
+    window = Worksheet()
     window.show()
     app.exec()
