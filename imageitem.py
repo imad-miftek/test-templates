@@ -1,34 +1,37 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel
-from PySide6.QtCore import Qt, QRunnable, QObject, Signal
-from PySide6.QtGui import QGuiApplication
-
-import pyqtgraph as pg
+import sys
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
+from plotpy.plot import BasePlot
+from plotpy.items import XYImageItem
+from plotpy.styles import XYImageParam
 import numpy as np
 
-if __name__ == "__main__":
-    app = QApplication([])
+class Plot(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Base Plot")
+        self.setGeometry(100, 100, 800, 600)
 
-    window = QMainWindow()
-    window.setWindowTitle("My App")
-    window.setGeometry(100, 100, 500, 400)
+        # Create the main widget and layout
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        layout = QVBoxLayout(main_widget)
 
-    layout = QVBoxLayout()
+        # Create PlotWidget
+        self.plot = BasePlot()
+        layout.addWidget(self.plot)
 
-    plot = pg.PlotWidget()
-    plot.setXRange(0, 100)
-    plot.setYRange(0, 100)
-    plot.setBackground("w")
-    image = pg.ImageItem()
-    image.setColorMap(pg.colormap.get(name='viridis', source='matplotlib'))
-    image.setImage(np.random.rand(100, 100))
-    plot.addItem(image)
-    layout.addWidget(plot)
+        wavelengths = np.array([400, 500, 600, 700])  # Example wavelengths as NumPy array
 
-    widget = QWidget()
-    widget.setLayout(layout)
 
-    window.setCentralWidget(widget)
+        self.image = XYImageItem(x=wavelengths, y=np.linspace(0, 100, 100), data=np.random.normal(size=(4, 4)),
+                                 param=XYImageParam())
 
+        self.plot.add_item(self.image)
+
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = Plot()
     window.show()
-
-    app.exec()
+    sys.exit(app.exec())
