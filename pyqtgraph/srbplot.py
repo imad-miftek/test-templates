@@ -4,7 +4,7 @@ from PySide6.QtGui import QTransform
 import pyqtgraph as pg
 import numpy as np
 
-from colormaps import COLORMAPS
+from colormaps.colormaps import COLORMAPS
 
 LOG_MIN = 0
 LOG_MAX = 8
