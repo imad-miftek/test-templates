@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QMenu, QDialog, QVBoxLayout, QSpinBox, QLabel, 
-                               QScrollArea, QDialogButtonBox, QApplication)
+                               QScrollArea, QDialogButtonBox, QApplication, QMainWindow, QMdiArea, QMdiSubWindow)
 from PySide6.QtGui import QFont, QColor
 from PySide6.QtCore import Qt, QObject, QEvent, QTimer, Signal, Slot
 
@@ -463,8 +463,27 @@ class PseudocolorPlot(QWidget):
 
 
 if __name__ == '__main__':
-    # pass
+    
     app = QApplication([])
+    
+    # Create main window with MDI area
+    main_window = QMainWindow()
+    main_window.setWindowTitle("PseudocolorPlot in MDI")
+    
+    # Create MDI area and set it as the central widget
+    mdi_area = QMdiArea()
+    main_window.setCentralWidget(mdi_area)
+    
+    # Create the PseudocolorPlot
     plot = PseudocolorPlot()
-    plot.show()
+    
+    # Add plot to MDI area as a subwindow
+    sub_window = QMdiSubWindow()
+    sub_window.setWidget(plot)
+    mdi_area.addSubWindow(sub_window)
+    
+    # Show the window and start the application
+    main_window.resize(800, 600)
+    main_window.show()
+    
     app.exec()
