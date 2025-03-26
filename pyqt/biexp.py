@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
         # Create PlotWidget
         self.plot = pg.PlotWidget(background='w')
         self.plot.setXRange(0, 10)
-        self.plot.setYRange(0, 10**8)
+        self.plot.setYRange(0, 100)
         self.plot.setLogMode(x=False, y=False)
         self.plot.showGrid(True, True)
 
