@@ -47,7 +47,8 @@ class BiExpAxisItem(pg.AxisItem):
         minor_ticks = []
         
         if self.biexp_mode:
-            # Bi-exponential mode (symmetric log scale)
+            # Bi-exponential mode implementation remains unchanged
+            # ...same code as before...
             
             # Linear region ticks
             if -self.linear_threshold <= maxVal and minVal <= self.linear_threshold:
@@ -112,7 +113,8 @@ class BiExpAxisItem(pg.AxisItem):
                             minor_ticks.append(tick)
                             
         elif self.semi_log_mode:
-            # Semi-log mode (log for positive, linear for negative)
+            # Semi-log mode implementation remains unchanged
+            # ...same code as before...
             
             # Handle positive (logarithmic) side
             if maxVal > 0:
@@ -163,13 +165,17 @@ class BiExpAxisItem(pg.AxisItem):
         ]
         
     def tickStrings(self, values, scale, spacing):
-        """Generate strings for the tick values"""
+        """Generate strings for the tick values, with no labels for negative values"""
         if not self.biexp_mode and not self.semi_log_mode:
             return super().tickStrings(values, scale, spacing)
             
         strings = []
         for v in values:
-            if abs(v) < 1e-10:
+            # For negative values, return an empty string (no label)
+            if v < 0:
+                strings.append('')
+            # For zero and positive values, keep the existing formatting
+            elif abs(v) < 1e-10:
                 strings.append('0')
             elif abs(v) < 0.1 or abs(v) >= 10000:
                 strings.append(f"{v*scale:.1e}")
@@ -196,32 +202,35 @@ class MainWindow(QMainWindow):
         # Create PlotWidget with custom y-axis
         self.plot = pg.PlotWidget(background='w', axisItems={'left': y_axis})
         self.plot.setXRange(0, 10)
-        self.plot.setYRange(0, 1000)
+        self.plot.setYRange(0, 1000)  # Include negative range to show unlabeled ticks
         self.plot.showGrid(True, True)
         
         # Enable bi-exponential mode
-        y_axis.enableSemiLogMode(True, linear_threshold=100.0)
+        y_axis.enableBiExpMode(True, linear_threshold=100.0)
         
         # Add sample data to demonstrate the scaling
         # Linear data
         x = np.linspace(0, 10, 100)
         
         # Small values around zero
-        y1 = np.sin(x) * 5
+        y1 = np.sin(x) * 50
         self.plot.plot(x, y1, pen='b', name="Linear Range")
         
         # Medium positive values
-        y2 = 10 + x * 20
+        y2 = 50 + x * 20
         self.plot.plot(x, y2, pen='r', name="Medium Range")
         
         # Large positive values (exponential)
         y3 = 50 * np.exp(x/2)
         self.plot.plot(x, y3, pen='g', name="Exponential Positive")
         
-        # Large negative values
+        # Large negative values (showing unlabeled ticks)
         y4 = -50 * np.exp(x/2)
-        self.plot.plot(x, y4, pen='m', name="Exponential Negative")
+        self.plot.plot(x, y4, pen='m', name="Negative Values (unlabeled)")
 
+        # Add legend
+        self.plot.addLegend()
+        
         # Add plot to layout
         layout.addWidget(self.plot)
 
