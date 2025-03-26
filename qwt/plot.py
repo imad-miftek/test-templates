@@ -6,6 +6,8 @@ from plotpy.styles import XYImageParam
 from log10 import Log10ScaleEngine
 import numpy as np
 
+
+
 class Plot(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -19,13 +21,16 @@ class Plot(QMainWindow):
 
         self.image_item = XYImageItem(
             x=np.array([0, 1, 2, 3, 4]), 
-            y=np.linspace(1, 5, 1024),
+            y=np.linspace(0, 5, 1024),
             data=np.random.rand(1024, 5)           
         )
 
+
+
         # Create PlotWidget
         self.plot = BasePlot()
-        self.plot.add_item(self.image_item)
+        self.plot.setAxisScaleEngine(BasePlot.Y_LEFT, Log10ScaleEngine())
+        # self.plot.add_item(self.image_item)
         layout.addWidget(self.plot)
 
 if __name__ == '__main__':
