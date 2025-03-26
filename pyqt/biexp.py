@@ -1,4 +1,4 @@
-import pyqt as pg
+import pyqtgraph as pg
 from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
 
 
@@ -14,9 +14,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(main_widget)
 
         # Create PlotWidget
-        self.plot = pg.PlotWidget()
-        self.plot.showGrid(True, True)
-        self.plot.setBackground('w')
+        self.plot = pg.PlotWidget(background='w')
 
         # Add plot to layout
         layout.addWidget(self.plot)
