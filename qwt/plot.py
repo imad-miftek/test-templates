@@ -1,12 +1,11 @@
+from enum import auto
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
-from plotpy.plot import BasePlot
-from plotpy.items import ImageItem, XYImageItem
-from plotpy.styles import XYImageParam
+from PySide6.QtCore import Qt
+from plotpy.plot import BasePlot, PlotManager
+from plotpy.tools import SelectTool, AnnotatedRectangleTool
 from log10 import Log10ScaleEngine
 import numpy as np
-
-
 
 class Plot(QMainWindow):
     def __init__(self):
@@ -19,19 +18,31 @@ class Plot(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
 
-        self.image_item = XYImageItem(
-            x=np.array([0, 1, 2, 3, 4]), 
-            y=np.linspace(0, 5, 1024),
-            data=np.random.rand(1024, 5)           
-        )
-
-
-
         # Create PlotWidget
         self.plot = BasePlot()
-        self.plot.setAxisScaleEngine(BasePlot.Y_LEFT, Log10ScaleEngine())
-        # self.plot.add_item(self.image_item)
+        # self.plot.set_axis_scale(BasePlot.Y_LEFT, 'lin')
+        # self.plot.set_axis_scale(BasePlot.X_BOTTOM, 'lin')
+
+        
         layout.addWidget(self.plot)
+
+        self.manager = PlotManager(self.plot)
+        self.manager.add_plot(self.plot)
+
+        self.select_tool = self.manager.add_tool(SelectTool)
+        self.select_tool.activate()
+        self.rect_tool = self.manager.add_tool(AnnotatedRectangleTool, handle_final_shape_cb=self.handle_final_shape, switch_to_default_tool=True)
+
+        self.plot.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
+        self.plot.addAction("Add Rectangle", lambda: self.rect_tool.activate())
+
+    def handle_final_shape(self, shape):
+        print(f"Final shape: {shape}")
+        self.plot.unselect_all()
+        self.plot.select_item(shape)
+
+    def add_shape(self, tool):
+        self.manager.get_tool(tool).activate()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
