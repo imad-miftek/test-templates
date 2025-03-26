@@ -2,6 +2,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QMainWindow, QApplication, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt
+from biExponentialAxisItem import BiExponentialAxisItem
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -14,12 +15,15 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         
+        # Create custom y-axis
+        y_axis = BiExponentialAxisItem(orientation='left')
+        
         # Create PlotWidget with custom y-axis
-        self.plot = pg.PlotWidget(background='w')
+        self.plot = pg.PlotWidget(background='w', axisItems={'left': y_axis})
         
         # Get the view box and set it to log mode
         view = self.plot.getPlotItem().getViewBox()
-        view.setLimits(xMin=0, xMax=10, yMin=1, yMax=10**8)
+        view.setLimits(xMin=0, xMax=10, yMin=10**0, yMax=10**8)
         view.setRange(xRange=[0, 10], yRange=[10**0, 10**8])
         
         # Add plot to layout
