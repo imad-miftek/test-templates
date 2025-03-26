@@ -19,9 +19,8 @@ class MainWindow(QMainWindow):
         
         # Get the view box and set it to log mode
         view = self.plot.getPlotItem().getViewBox()
-        view.setLogMode(False, True)  # y-axis logarithmic, x-axis linear
-        view.setLimits(xMin=0, xMax=10, yMin=0, yMax=8)
-        view.setRange(xRange=[0, 10], yRange=[0, 8])
+        view.setLimits(xMin=0, xMax=10, yMin=1, yMax=10**8)
+        view.setRange(xRange=[0, 10], yRange=[10**0, 10**8])
         
         # Add plot to layout
         layout.addWidget(self.plot)
