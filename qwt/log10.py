@@ -5,6 +5,20 @@ import numpy as np
 
 LOG_MIN, LOG_MAX = 1, 10**8
 
+class Log10ScaleDraw(QwtScaleDraw):
+    def __init__(self):
+        super().__init__()
+        self.setLabelRotation(0)
+
+    def label(self, value):
+        if value < 1: return QwtText('0')
+        if value == 1:
+            return QwtText('1')
+        else:
+            exponent = int(np.log10(value))
+            return QwtText('10<sup>%d</sup>' % exponent, QwtText.RichText)
+
+
 class Log10Transform(QwtTransform):
     def __init__(self):
         super().__init__()

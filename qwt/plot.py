@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
 from PySide6.QtCore import Qt
 from plotpy.plot import BasePlot, PlotManager
 from plotpy.tools import SelectTool, AnnotatedRectangleTool
-from log10 import Log10ScaleEngine
+from log10 import Log10ScaleEngine, Log10ScaleDraw
 import numpy as np
 
 class Plot(QMainWindow):
@@ -20,9 +20,10 @@ class Plot(QMainWindow):
 
         # Create PlotWidget
         self.plot = BasePlot()
-        # self.plot.set_axis_scale(BasePlot.Y_LEFT, 'lin')
-        # self.plot.set_axis_scale(BasePlot.X_BOTTOM, 'lin')
-
+        self.plot.setAxisScaleEngine(BasePlot.yLeft, Log10ScaleEngine())
+        self.plot.setAxisScaleEngine(BasePlot.xBottom, Log10ScaleEngine())
+        self.plot.setAxisScaleDraw(BasePlot.yLeft, Log10ScaleDraw())
+        self.plot.setAxisScaleDraw(BasePlot.xBottom, Log10ScaleDraw())
         
         layout.addWidget(self.plot)
 
