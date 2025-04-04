@@ -306,7 +306,7 @@ class MainWindow(QMainWindow):
         self.plot = pg.PlotWidget()
         self.plot.showGrid(True, True)
         self.plot.setBackground('w')
-        self.plot.setMouseEnabled(x=False, y=False)
+        # self.plot.setMouseEnabled(x=False, y=False)
         
         # Add sample data
         np.random.seed(42)
