@@ -185,7 +185,7 @@ class PolygonROI(pg.ROI):
         return [h['item'].scenePos() for h in self.handles]
 
 
-class PolygonROICreator:
+class PolygonGateCreator:
     """Helper class to create PolygonROIs interactively on a PlotWidget."""
     def __init__(self, plot_widget):
         self.plot_widget = plot_widget
@@ -325,7 +325,7 @@ class MainWindow(QMainWindow):
         self.plot.addItem(self.scatter)
         
         # Set up the ROI creator
-        self.roi_creator = PolygonROICreator(self.plot)
+        self.roi_creator = PolygonGateCreator(self.plot)
         
         # Add plot to layout
         layout.addWidget(self.plot)
@@ -365,7 +365,7 @@ class MainWindow(QMainWindow):
                 self.roi_creator.viewbox.mouseClickEvent = self.roi_creator.original_mouse_click_event
                 self.roi_creator.viewbox.mouseDragEvent = self.roi_creator.original_mouse_drag_event
                 
-        self.roi_creator = PolygonROICreator(self.plot)
+        self.roi_creator = PolygonGateCreator(self.plot)
         self.create_button.setEnabled(True)
         self.create_button.setText("Create Polygon")
 
