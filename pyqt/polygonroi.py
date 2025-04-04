@@ -200,7 +200,7 @@ class PolygonROICreator:
     def start(self):
         """Start creating a new polygon."""
         # Create a new PolygonROI
-        self.current_roi = PolygonROI(pen=pg.mkPen('r', width=2))
+        self.current_roi = PolygonROI(pen=pg.mkPen('k', width=2), handlePen=pg.mkPen('k', width=2))
         self.current_roi.sigCreationFinished.connect(self._on_creation_finished)
         
         # Add it to the plot
