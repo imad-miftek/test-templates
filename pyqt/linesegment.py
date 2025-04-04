@@ -17,7 +17,7 @@ class SingleLineSegmentCreator:
         
         # Preview line to show while drawing
         self.preview_line = pg.PlotDataItem(
-            pen=pg.mkPen('r', width=2, style=Qt.PenStyle.DashLine)
+            pen=pg.mkPen('r', width=2, style=Qt.PenStyle.SolidLine)
         )
         self.preview_line.setZValue(100)
         
