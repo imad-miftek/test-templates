@@ -67,11 +67,6 @@ class SingleLineSegmentCreator:
             # Store in view coordinates
             self.start_point = (view_pos.x(), view_pos.y())
             
-            # Create a marker at the start point (in view coordinates)
-            self.plot.plot([view_pos.x()], [view_pos.y()], 
-                         pen=None, symbol='o', symbolSize=8, 
-                         symbolBrush='b')
-            
             # Update button text
             if hasattr(self, 'button'):
                 self.button.setText("Click to set end point...")
